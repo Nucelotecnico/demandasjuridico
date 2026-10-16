@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CEMIG - Controle Geral de Demandas Institucionais</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js para renderizacao de graficos interativos em tempo real -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Supabase JS Client para sincronizacao futura com banco de dados na nuvem -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+  <!-- ========================================================================
+       TELA DE LOGIN E AUTENTICAÇÃO OBRIGATÓRIA CEMIG
+       ======================================================================== -->
+  <div class="login-screen-overlay" id="loginScreenOverlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="cemig-brand-logo-large">CEMIG</div>
+        <h2 class="login-title">Acesso Restrito ao Sistema</h2>
+        <p class="login-subtitle">Controle Geral de Demandas e Processos Regulatórios</p>
+      </div>
+
+      <div class="login-body">
+        <div class="login-quick-access">
+          <div class="login-quick-title">Contas Pré-Configuradas no Supabase:</div>
+          <div class="login-quick-buttons">
+            <button type="button" class="btn btn-primary btn-sm" id="btnQuickLoginAdmin">
+              Entrar como Administrador
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnQuickLoginOperador">
+              Entrar como Operador/Analista
+            </button>
+          </div>
+        </div>
+
+        <div class="login-alert-box danger" id="loginAlertBox"></div>
+
+        <form id="formLogin">
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" for="loginEmail">E-mail Corporativo</label>
+            <input type="email" class="form-control" id="loginEmail" placeholder="exemplo@cemig.com.br" required autocomplete="username">
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label class="form-label" for="loginSenha">Senha de Acesso</label>
+            <input type="password" class="form-control" id="loginSenha" placeholder="Digite sua senha" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-orange" style="width: 100%; padding: 12px; font-size: 14px;">
+            Acessar Sistema
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       APLICAÇÃO PRINCIPAL (EXIBIDA APÓS AUTENTICAÇÃO)
+       ======================================================================== -->
+  <div id="appContainer" style="display: none;">
+
+    <!-- Faixa Topo Corporativa CEMIG -->
+    <div class="header-top-bar">
+      <div class="header-top-bar-inner">
+        <span>CEMIG - Companhia Energética de Minas Gerais | Portal Interno de Gestão Regulatória</span>
+        <span id="currentDateDisplay">Data Atual do Sistema</span>
+      </div>
+    </div>
+
+    <!-- Cabecalho Institucional -->
+    <header class="header">
+      <div class="header-container">
+        <div class="brand-wrapper">
+          <div class="brand-logo-badge">CEMIG</div>
+          <div>
+            <h1 class="brand-title">Controle Geral de Demandas</h1>
+            <p class="brand-subtitle">Diretoria de Relações Institucionais e Assuntos Regulatórios</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="storage-mode-indicator" id="storageModeBadge">
+            <span class="storage-dot supabase" id="storageDot"></span>
+            <span id="storageModeText">Supabase Conectado</span>
+          </div>
+
+          <!-- Perfil do Usuario Logado -->
+          <div class="user-profile-badge">
+            <div class="user-avatar-circle" id="userAvatarText">AD</div>
+            <div class="user-info-text">
+              <span class="user-name" id="userDisplayName">Nome do Usuário</span>
+              <span class="user-role-label" id="userDisplayRole">ADMINISTRADOR</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnLogout" title="Encerrar sessão" style="margin-left: 6px; padding: 2px 8px;">
+              Sair
+            </button>
+          </div>
+
+          <button class="btn btn-orange btn-sm" id="btnQuickNewDemanda">
+            + Nova Demanda
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navegacao por Abas -->
+    <nav class="nav-tabs">
+      <div class="nav-tabs-container">
+        <button class="nav-tab-btn active" data-tab="tab-dashboard">Painel de Indicadores & Insights</button>
+        <button class="nav-tab-btn" data-tab="tab-cadastro">Cadastro de Demanda</button>
+        <button class="nav-tab-btn" data-tab="tab-tabela">Listagem Geral (<span id="totalDemandasBadge">0</span>)</button>
+        <!-- Abas Administrativas (visíveis apenas para Admin) -->
+        <button class="nav-tab-btn admin-only" data-tab="tab-usuarios" id="tabBtnUsuarios">Gestão de Usuários</button>
+        <button class="nav-tab-btn admin-only" data-tab="tab-configuracoes" id="tabBtnConfiguracoes">Integração Supabase & Backup</button>
+      </div>
+    </nav>
+
+    <!-- Conteudo Principal -->
+    <main class="main-container">
+
+      <!-- ABA 1: DASHBOARD & INSIGHTS (TODOS OS USUÁRIOS) -->
+      <section id="tab-dashboard" class="tab-pane active">
+        <!-- Grid de Metricas / Indicadores Chave -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-title">Total de Demandas</span>
+            <span class="metric-value" id="metricTotal">0</span>
+            <span class="metric-footnote">Cadastradas no sistema</span>
+          </div>
+          <div class="metric-card alert">
+            <span class="metric-title">Em Análise / Abertas</span>
+            <span class="metric-value" id="metricEmAnalise">0</span>
+            <span class="metric-footnote">Pendentes de conclusão</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Concluídas</span>
+            <span class="metric-value" id="metricConcluidas">0</span>
+            <span class="metric-footnote">Demandas finalizadas</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Cumprimento de Prazo (SLA)</span>
+            <span class="metric-value" id="metricTaxaSla">100.0%</span>
+            <span class="metric-footnote">Respostas enviadas no prazo</span>
+          </div>
+          <div class="metric-card info">
+            <span class="metric-title">Tempo Médio Resposta</span>
+            <span class="metric-value" id="metricMediaDias">0 d</span>
+            <span class="metric-footnote">Dias entre recebimento e resposta</span>
+          </div>
+          <div class="metric-card danger">
+            <span class="metric-title">Demandas Vencidas</span>
+            <span class="metric-value" id="metricAtrasadas">0</span>
+            <span class="metric-footnote">Em aberto com prazo expirado</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Maior Volume Responsável</span>
+            <span class="metric-value" id="metricTopResp" style="font-size: 16px;">N/A</span>
+            <span class="metric-footnote">Distribuição de carga</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Categoria Frequente</span>
+            <span class="metric-value" id="metricTopCat" style="font-size: 16px;">N/A</span>
+            <span class="metric-footnote">Maior incidência operacional</span>
+          </div>
+        </div>
+
+        <!-- Grid de Graficos em Tempo Real -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <h3 class="chart-card-title">Distribuição por Status</h3>
+                <p class="chart-card-subtitle">Visão percentual do andamento das demandas</p>
+              </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chartStatus"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <h3 class="chart-card-title">Cumprimento de SLA (Prazo)</h3>
+                <p class="chart-card-subtitle">Relação entre prazos pactuados e datas de resposta</p>
+              </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chartSla"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <h3 class="chart-card-title">Volume por Tipo de Demanda</h3>
+                <p class="chart-card-subtitle">Ofícios, Procon, Parlamentar, etc.</p>
+              </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chartTipo"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <h3 class="chart-card-title">Carga de Trabalho por Responsável</h3>
+                <p class="chart-card-subtitle">Demandas concluídas vs em análise por membro da equipe</p>
+              </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chartResponsavel"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <h3 class="chart-card-title">Top Categorias de Demanda</h3>
+                <p class="chart-card-subtitle">Volume das principais naturezas de processo</p>
+              </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chartCategoria"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <h3 class="chart-card-title">Evolução Mensal de Entrada</h3>
+                <p class="chart-card-subtitle">Histórico de novas solicitações protocoladas</p>
+              </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chartTimeline"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 2: FORMULARIO DE CADASTRO (TODOS OS USUÁRIOS) -->
+      <section id="tab-cadastro" class="tab-pane">
+        <div class="form-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+              <h2 style="font-size: 18px; font-weight: 800; color: var(--cemig-green-dark);" id="formTitle">Cadastrar Nova Demanda Institucional</h2>
+              <p style="font-size: 13px; color: var(--text-muted);">
+                Preencha os campos correspondentes às 17 colunas da planilha Cemig. Os dados atualizam métricas e gráficos instantaneamente.
+              </p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnLimparForm">Limpar Formulário</button>
+          </div>
+
+          <form id="formDemanda">
+            <input type="hidden" id="field_id" name="id">
+
+            <!-- Secao 1: Identificacao e Prazos -->
+            <div class="form-section-title">
+              <span>1. Identificação Geral e Prazos</span>
+            </div>
+            <div class="form-grid-4">
+              <div class="form-group">
+                <label class="form-label" for="field_data_recebida">Data Recebida <span class="required">*</span></label>
+                <input type="date" class="form-control" id="field_data_recebida" name="data_recebida" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field_prazo">Prazo Limite <span class="required">*</span></label>
+                <input type="date" class="form-control" id="field_prazo" name="prazo" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field_tipo">Tipo de Demanda <span class="required">*</span></label>
+                <input type="text" class="form-control" id="field_tipo" name="tipo" list="list-tipos" placeholder="Selecione ou digite" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field_numero_oficio">Número do Ofício / Protocolo <span class="required">*</span></label>
+                <input type="text" class="form-control" id="field_numero_oficio" name="numero_oficio" placeholder="Ex: 239/2026, RN/RP-355/2026" required>
+              </div>
+            </div>
+
+            <!-- Secao 2: Origem e Localizacao -->
+            <div class="form-section-title">
+              <span>2. Órgão Solicitante e Localização</span>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label" for="field_promotoria">Promotoria / Órgão</label>
+                <input type="text" class="form-control" id="field_promotoria" name="promotoria" list="list-promotorias" placeholder="Ex: Belo Horizonte, Serro, Sabará...">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field_municipio_referido">Município Referido</label>
+                <input type="text" class="form-control" id="field_municipio_referido" name="municipio_referido" list="list-municipios" placeholder="Ex: Montes Claros, Uberlândia...">
+              </div>
+            </div>
+
+            <!-- Secao 3: Classificacao e Tipificacao -->
+            <div class="form-section-title">
+              <span>3. Classificação e Atribuição</span>
+            </div>
+            <div class="form-grid-4">
+              <div class="form-group">
+                <label class="form-label" for="field_categoria">Categoria</label>
+                <input type="text" class="form-control" id="field_categoria" name="categoria" list="list-categorias" placeholder="Ex: Orçamento, Análise Carga...">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field_subcategoria">Subcategoria</label>
+                <input type="text" class="form-control" id="field_subcategoria" name="subcategoria" list="list-subcategorias" placeholder="Ex: Parcelamento Irregular Solo...">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field_responsabilidade_outra_gerencia">Resp. Outra Gerência?</label>
+                <select class="form-control" id="field_responsabilidade_outra_gerencia" name="responsabilidade_outra_gerencia">
+                  <option value="Não">Não</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Aguardando informação">Aguardando informação</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field_reincidente">Reincidente?</label>
+                <select class="form-control" id="field_reincidente" name="reincidente">
+                  <option value="Não">Não</option>
+                  <option value="Sim">Sim</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Secao 4: Referencias e Descricao -->
+            <div class="form-section-title">
+              <span>4. Detalhamento e Referências</span>
+            </div>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label" for="field_dado_em_comum_eo">Dado em Comum (EO)</label>
+                <input type="text" class="form-control" id="field_dado_em_comum_eo" name="dado_em_comum_eo" placeholder="Ex: IC 1.22.000.003989/2016-66 ou Código NS">
+              </div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label" for="field_requerimento">Requerimento / Descrição do Pedido</label>
+                <textarea class="form-control" id="field_requerimento" name="requerimento" placeholder="Detalhes, coordenadas, texto do pedido ou histórico..."></textarea>
+              </div>
+            </div>
+
+            <!-- Secao 5: Tramitacao, Responsavel e Status -->
+            <div class="form-section-title">
+              <span>5. Tramitação, Resposta e Situação Atual</span>
+            </div>
+            <div class="form-grid-4">
+              <div class="form-group">
+                <label class="form-label" for="field_responsavel">Responsável Técnico <span class="required">*</span></label>
+                <input type="text" class="form-control" id="field_responsavel" name="responsavel" list="list-responsaveis" placeholder="Ex: Vanessa, Rodolfo, Agata..." required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field_status">Status Atual <span class="required">*</span></label>
+                <select class="form-control" id="field_status" name="status" required>
+                  <option value="Em Analise">Em Análise</option>
+                  <option value="Concluido">Concluído</option>
+                  <option value="Redirecionado">Redirecionado</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field_data_validacao">Data de Validação</label>
+                <input type="date" class="form-control" id="field_data_validacao" name="data_validacao">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field_numero_gdoc">Número GDOC</label>
+                <input type="text" class="form-control" id="field_numero_gdoc" name="numero_gdoc" placeholder="Ex: PE/EM-08575/2025">
+              </div>
+            </div>
+            <div class="form-grid-4">
+              <div class="form-group">
+                <label class="form-label" for="field_data_resposta_mp">Data Resposta MP / Órgão</label>
+                <input type="date" class="form-control" id="field_data_resposta_mp" name="data_resposta_mp">
+              </div>
+            </div>
+
+            <div class="form-actions-bar">
+              <button type="button" class="btn btn-secondary" id="btnCancelarEdicao" style="display: none;">Cancelar Edição</button>
+              <button type="submit" class="btn btn-primary" id="btnSalvarDemanda">Salvar Demanda</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ABA 3: TABELA DE DEMANDAS (TODOS OS USUÁRIOS) -->
+      <section id="tab-tabela" class="tab-pane">
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="table-filters-row">
+              <div class="search-input-wrapper">
+                <input type="text" class="form-control" id="filtroBuscaGlobal" placeholder="Buscar por qualquer termo (Ofício, Município, Responsável, GDOC)...">
+              </div>
+              <div>
+                <select class="form-control" id="filtroStatus">
+                  <option value="">Todos os Status</option>
+                  <option value="Em Analise">Em Análise</option>
+                  <option value="Concluido">Concluído</option>
+                  <option value="Redirecionado">Redirecionado</option>
+                </select>
+              </div>
+              <div>
+                <select class="form-control" id="filtroTipo">
+                  <option value="">Todos os Tipos</option>
+                  <option value="Oficio">Ofício</option>
+                  <option value="Procon">Procon</option>
+                  <option value="Parlamentar">Parlamentar</option>
+                  <option value="Consumidor.Gov">Consumidor.Gov</option>
+                  <option value="Demanda Varejo">Demanda Varejo</option>
+                  <option value="Condor">Condor</option>
+                </select>
+              </div>
+              <div>
+                <select class="form-control" id="filtroResponsavel">
+                  <option value="">Todos os Responsáveis</option>
+                  <option value="Vanessa">Vanessa</option>
+                  <option value="Rodolfo">Rodolfo</option>
+                  <option value="Agata">Agata</option>
+                  <option value="Ruan">Ruan</option>
+                </select>
+              </div>
+              <div>
+                <select class="form-control" id="filtroSLA">
+                  <option value="">Filtro SLA / Prazo</option>
+                  <option value="no_prazo">No Prazo</option>
+                  <option value="fora_prazo">Fora do Prazo</option>
+                  <option value="vencidas_abertas">Vencidas em Aberto</option>
+                </select>
+              </div>
+              <div>
+                <button class="btn btn-secondary btn-sm" id="btnLimparFiltros">Limpar Filtros</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="demandasTable">
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="id">ID</th>
+                  <th class="sortable" data-sort="data_recebida">Recebida</th>
+                  <th class="sortable" data-sort="prazo">Prazo</th>
+                  <th class="sortable" data-sort="tipo">Tipo</th>
+                  <th class="sortable" data-sort="numero_oficio">Nº Ofício</th>
+                  <th class="sortable" data-sort="promotoria">Promotoria / Município</th>
+                  <th class="sortable" data-sort="categoria">Categoria</th>
+                  <th class="sortable" data-sort="responsavel">Responsável</th>
+                  <th class="sortable" data-sort="status">Status</th>
+                  <th>SLA / Situação</th>
+                  <th style="text-align: right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaDemandasBody">
+                <!-- Renderizado via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginacao -->
+          <div class="table-pagination">
+            <div>
+              Exibindo <span id="pagInicio">0</span> a <span id="pagFim">0</span> de <span id="pagTotal">0</span> registros
+            </div>
+            <div class="pagination-controls">
+              <label for="pagPorPagina" style="margin-right: 8px;">Linhas:</label>
+              <select class="form-control" id="pagPorPagina" style="width: auto; display: inline-block; padding: 4px 8px;">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" id="btnPagAnterior">Anterior</button>
+              <span id="pagAtualNumero" style="font-weight: 700; padding: 0 8px;">1</span>
+              <button class="btn btn-secondary btn-sm" id="btnPagProxima">Próxima</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 4: GESTÃO DE USUÁRIOS (EXCLUSIVA PARA PERFIL ADMIN) -->
+      <section id="tab-usuarios" class="tab-pane">
+        <div class="form-card">
+          <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 18px; font-weight: 800; color: var(--cemig-green-dark);">Gestão de Usuários e Controle de Acesso (RBAC)</h2>
+            <p style="font-size: 13px; color: var(--text-muted);">
+              Cadastre novos colaboradores e defina suas permissões no sistema CEMIG. Todos os usuários são cadastrados e autenticados diretamente na tabela <code>usuarios_vanessa</code> do <b>Supabase</b>.
+            </p>
+          </div>
+
+          <!-- Formulario de Novo Usuario -->
+          <form id="formNovoUsuario" style="background: var(--cemig-green-subtle); padding: 20px; border-radius: var(--radius-md); border: 1px solid #D5E5DC; margin-bottom: 24px;">
+            <h3 style="font-size: 14px; font-weight: 700; color: var(--cemig-green-dark); margin-bottom: 12px;">Cadastrar Novo Usuário</h3>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label" for="usrNome">Nome Completo <span class="required">*</span></label>
+                <input type="text" class="form-control" id="usrNome" placeholder="Ex: Maria Fernandes" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="usrEmail">E-mail Corporativo (@cemig.com.br) <span class="required">*</span></label>
+                <input type="email" class="form-control" id="usrEmail" placeholder="mfernandes@cemig.com.br" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="usrSenha">Senha Inicial <span class="required">*</span></label>
+                <input type="password" class="form-control" id="usrSenha" placeholder="Mínimo 6 caracteres" required minlength="6">
+              </div>
+            </div>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label" for="usrPerfil">Perfil de Acesso <span class="required">*</span></label>
+                <select class="form-control" id="usrPerfil" required>
+                  <option value="operador" selected>Operador / Analista (Visualiza painéis e edita demandas)</option>
+                  <option value="admin">Administrador (Acesso total e gestão de usuários)</option>
+                </select>
+              </div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label" for="usrCargo">Setor / Cargo</label>
+                <input type="text" class="form-control" id="usrCargo" placeholder="Ex: Analista de Relações Institucionais">
+              </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
+              <button type="submit" class="btn btn-primary" id="btnSalvarNovoUsuario">Cadastrar Usuário</button>
+            </div>
+          </form>
+
+          <!-- Tabela de Usuarios Existentes -->
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">Usuários Cadastrados no Sistema</h3>
+            <div class="table-responsive">
+              <table class="data-table" id="tabelaUsuarios">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Perfil de Acesso</th>
+                    <th>Setor / Cargo</th>
+                    <th>Status</th>
+                    <th>Data de Cadastro</th>
+                    <th style="text-align: right;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tabelaUsuariosBody">
+                  <!-- Injetado via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 5: CONFIGURAÇÕES SUPABASE E BACKUP (EXCLUSIVA PARA ADMIN) -->
+      <section id="tab-configuracoes" class="tab-pane">
+        <div class="form-card">
+          <h2 style="font-size: 18px; font-weight: 800; color: var(--cemig-green-dark); margin-bottom: 8px;">Conexão com o Supabase</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+            A aplicação opera exclusivamente conectada ao banco de dados <b>Supabase</b> em tempo real. O armazenamento local de dados foi desativado.
+          </p>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="cfgSupabaseUrl">Supabase Project URL</label>
+              <input type="text" class="form-control" id="cfgSupabaseUrl" placeholder="https://xyzcompany.supabase.co">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cfgSupabaseKey">Supabase Anon Public API Key</label>
+              <input type="password" class="form-control" id="cfgSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="cfgTableName">Tabela de Demandas no Supabase</label>
+              <input type="text" class="form-control" id="cfgTableName" value="demandas_vanessa">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cfgUsersTableName">Tabela de Usuários no Supabase</label>
+              <input type="text" class="form-control" id="cfgUsersTableName" value="usuarios_vanessa">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+            <button class="btn btn-primary" id="btnTestarSupabase">Testar Conexão Supabase</button>
+            <button class="btn btn-orange" id="btnSalvarConfigSupabase">Salvar Configurações</button>
+          </div>
+
+          <div id="supabaseFeedbackArea" style="margin-top: 16px; font-size: 13px; font-weight: 700; display: none;"></div>
+
+          <div style="margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--border-color);">
+            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 8px;">Backup e Gestão de Dados do Supabase</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+              Exporte os registros da tabela do Supabase nos formatos CSV ou JSON, ou faça importação em lote diretamente na nuvem.
+            </p>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <button class="btn btn-secondary btn-sm" id="btnExportarJSON">Exportar Backup JSON</button>
+              <button class="btn btn-secondary btn-sm" id="btnExportarCSV">Exportar Tabela CSV</button>
+              <label class="btn btn-secondary btn-sm" style="margin: 0; cursor: pointer;">
+                Importar Arquivo JSON no Supabase
+                <input type="file" id="fileInputImportJSON" accept=".json" style="display: none;">
+              </label>
+              <button class="btn btn-secondary btn-sm" id="btnRestaurarExemplo">Carregar Dados da Planilha no Supabase</button>
+              <button class="btn btn-danger btn-sm" id="btnLimparTudo">Limpar Demandas do Supabase</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Modal de Visualizacao Detalhada -->
+  <div class="modal-overlay" id="modalDetalhes">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalDetalhesTitle">Detalhes da Demanda</h3>
+        <button class="modal-close-btn" id="modalDetalhesClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalDetalhesContent"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" id="modalDetalhesBtnFechar">Fechar</button>
+        <button class="btn btn-primary btn-sm" id="modalDetalhesBtnEditar">Editar Demanda</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container de Toasts para Notificações -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Datalists para preenchimento padronizado -->
+  <datalist id="list-tipos">
+    <option value="Oficio">
+    <option value="Procon">
+    <option value="Parlamentar">
+    <option value="Consumidor.Gov">
+    <option value="Demanda Varejo">
+    <option value="Condor">
+    <option value="Preatermação">
+    <option value="Demanda Extrajudicial">
+    <option value="Acesso Informação">
+    <option value="RC/PP">
+  </datalist>
+
+  <datalist id="list-responsaveis">
+    <option value="Vanessa">
+    <option value="Rodolfo">
+    <option value="Agata">
+    <option value="Ruan">
+    <option value="Ulisses">
+    <option value="Fábio Juste">
+    <option value="Jeyne">
+  </datalist>
+
+  <datalist id="list-categorias">
+    <option value="Orçamento">
+    <option value="Analise Carga">
+    <option value="Informativo">
+    <option value="Execução de Obras">
+    <option value="Projeto">
+    <option value="GD">
+    <option value="PART">
+    <option value="Gestão de Ativos">
+    <option value="Investigação">
+    <option value="Travessia">
+  </datalist>
+
+  <datalist id="list-subcategorias">
+    <option value="Parcelamento Irregular Solo">
+    <option value="PFC">
+    <option value="Remoção/Deslocamento Rede/Poste">
+    <option value="Extensão Rede / IP">
+    <option value="Comunidade Quilombola">
+    <option value="Reanalise">
+    <option value="Classificação de Obras">
+    <option value="Comunidade Remanescente">
+    <option value="Ambiental">
+    <option value="Servidão Administrativa Linha">
+    <option value="Execução de Obras">
+    <option value="Projeto em desconformidade">
+  </datalist>
+
+  <datalist id="list-promotorias">
+    <option value="Belo Horizonte">
+    <option value="Serro">
+    <option value="Esmeraldas">
+    <option value="Januária">
+    <option value="Diamantina">
+    <option value="Contagem">
+    <option value="Itabira">
+    <option value="Rio Vermelho">
+    <option value="Sabará">
+    <option value="Montes Claros">
+    <option value="Uberlandia">
+    <option value="Unaí">
+    <option value="Caldas">
+    <option value="Coronel Fabriciano">
+    <option value="Caeté">
+    <option value="Alfenas">
+  </datalist>
+
+  <datalist id="list-municipios">
+    <option value="Montes Claros">
+    <option value="Uberlandia">
+    <option value="Juiz de Fora">
+    <option value="Brumadinho">
+    <option value="Divinopolis">
+    <option value="Itabira">
+    <option value="Coronel Fabriciano">
+    <option value="Serro">
+    <option value="Januária">
+    <option value="Belo Horizonte">
+  </datalist>
+
+  <!-- Scripts da Aplicação -->
+  <script src="config.js"></script>
+  <script src="storage.js"></script>
+  <script src="auth.js"></script>
+  <script src="initialData.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

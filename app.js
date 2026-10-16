@@ -20,8 +20,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const loginEmail = document.getElementById('loginEmail');
   const loginSenha = document.getElementById('loginSenha');
   const loginAlertBox = document.getElementById('loginAlertBox');
-  const btnQuickLoginAdmin = document.getElementById('btnQuickLoginAdmin');
-  const btnQuickLoginOperador = document.getElementById('btnQuickLoginOperador');
   const btnLogout = document.getElementById('btnLogout');
 
   // Elementos do Perfil no Header
@@ -159,19 +157,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitBtn.textContent = originalText;
       }
     }
-  });
-
-  // Atalhos de teste rápido no login
-  btnQuickLoginAdmin.addEventListener('click', () => {
-    loginEmail.value = 'admin@cemig.com.br';
-    loginSenha.value = 'admin123';
-    formLogin.dispatchEvent(new Event('submit'));
-  });
-
-  btnQuickLoginOperador.addEventListener('click', () => {
-    loginEmail.value = 'analista@cemig.com.br';
-    loginSenha.value = 'analista123';
-    formLogin.dispatchEvent(new Event('submit'));
   });
 
   // Logout

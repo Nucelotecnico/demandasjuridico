@@ -152,7 +152,6 @@ body {
   background-color: var(--danger-bg);
   color: var(--danger);
   border: 1px solid #FCA5A5;
-  display: block;
 }
 
 /* ==========================================================================

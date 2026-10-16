@@ -287,34 +287,39 @@ class ChartsManager {
     });
   }
 
-  // Grafico 6: Evolucao Temporal Mensal (Linha)
+  // Grafico 6: Evolucao Temporal Mensal (Convertido para BARRAS com valores externos)
   initTimelineChart() {
     const ctx = document.getElementById('chartTimeline');
     if (!ctx) return;
     this.charts.timeline = new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels: [],
         datasets: [{
           label: 'Novas Demandas Recebidas',
           data: [],
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37, 99, 235, 0.1)',
-          fill: true,
-          tension: 0.3,
-          pointBackgroundColor: '#2563eb',
-          pointRadius: 4
+          backgroundColor: '#008542',
+          borderRadius: 4,
+          borderWidth: 0
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'top', labels: { boxWidth: 12 } }
+          legend: { display: false }
         },
         scales: {
-          x: { grid: { display: false } },
-          y: { beginAtZero: true, ticks: { precision: 0 } }
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 11, weight: '600' }, color: '#334155' }
+          },
+          y: {
+            beginAtZero: true,
+            grace: '15%',
+            ticks: { precision: 0, font: { size: 11 } },
+            grid: { color: '#f1f5f9' }
+          }
         }
       }
     });

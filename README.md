@@ -93,10 +93,10 @@ Todas as colunas extraídas do arquivo Excel fornecido estão integradas à tabe
 
 1. **Painel de Indicadores & Insights (Geral)**:
    - Resumo executivo consolidado com total de demandas, status atual, tipos mais frequentes e evolução histórica.
-   - Gráfico de Distribuição por Status em barras com valores externos.
-   - Gráfico de Volume por Tipo de Demanda em barras horizontais com valores externos.
-   - Gráfico de Top Categorias em barras com valores externos.
-   - Linha de Evolução Mensal de Entrada.
+   - Gráfico de **Evolução Mensal de Entrada** em barras com valores externos.
+   - Gráfico de **Volume por Tipo de Demanda** em barras horizontais com valores externos.
+   - Gráfico de **Distribuição por Status** em barras com valores externos.
+   - Gráfico de **Top Categorias de Demanda** em barras com valores externos.
 
 2. **Produtividade da Equipe (`tab-produtividade`)**:
    - Cards dedicados: **Maior Volume por Responsável**, **Tempo Médio de Resposta**, **Demandas Concluídas** e **Demandas em Andamento**.

@@ -95,11 +95,13 @@
     <nav class="nav-tabs">
       <div class="nav-tabs-container">
         <button class="nav-tab-btn active" data-tab="tab-dashboard">Painel de Indicadores & Insights</button>
+        <button class="nav-tab-btn" data-tab="tab-produtividade">Produtividade</button>
+        <button class="nav-tab-btn" data-tab="tab-prazos">Prazos</button>
         <button class="nav-tab-btn" data-tab="tab-cadastro">Cadastro de Demanda</button>
         <button class="nav-tab-btn" data-tab="tab-tabela">Listagem Geral (<span id="totalDemandasBadge">0</span>)</button>
         <!-- Abas Administrativas (visíveis apenas para Admin) -->
         <button class="nav-tab-btn admin-only" data-tab="tab-usuarios" id="tabBtnUsuarios">Gestão de Usuários</button>
-        <button class="nav-tab-btn admin-only" data-tab="tab-configuracoes" id="tabBtnConfiguracoes">Integração Supabase & Backup</button>
+        <button class="nav-tab-btn admin-only" data-tab="tab-configuracoes" id="tabBtnConfiguracoes">Conexão Supabase & Backup</button>
       </div>
     </nav>
 
@@ -126,26 +128,6 @@
             <span class="metric-footnote">Demandas finalizadas</span>
           </div>
           <div class="metric-card">
-            <span class="metric-title">Cumprimento de Prazo (SLA)</span>
-            <span class="metric-value" id="metricTaxaSla">100.0%</span>
-            <span class="metric-footnote">Respostas enviadas no prazo</span>
-          </div>
-          <div class="metric-card info">
-            <span class="metric-title">Tempo Médio Resposta</span>
-            <span class="metric-value" id="metricMediaDias">0 d</span>
-            <span class="metric-footnote">Dias entre recebimento e resposta</span>
-          </div>
-          <div class="metric-card danger">
-            <span class="metric-title">Demandas Vencidas</span>
-            <span class="metric-value" id="metricAtrasadas">0</span>
-            <span class="metric-footnote">Em aberto com prazo expirado</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-title">Maior Volume Responsável</span>
-            <span class="metric-value" id="metricTopResp" style="font-size: 16px;">N/A</span>
-            <span class="metric-footnote">Distribuição de carga</span>
-          </div>
-          <div class="metric-card">
             <span class="metric-title">Categoria Frequente</span>
             <span class="metric-value" id="metricTopCat" style="font-size: 16px;">N/A</span>
             <span class="metric-footnote">Maior incidência operacional</span>
@@ -157,24 +139,12 @@
           <div class="chart-card">
             <div class="chart-card-header">
               <div>
-                <h3 class="chart-card-title">Distribuição por Status</h3>
-                <p class="chart-card-subtitle">Visão percentual do andamento das demandas</p>
+                <h3 class="chart-card-title">Evolução Mensal de Entrada</h3>
+                <p class="chart-card-subtitle">Histórico de novas solicitações protocoladas</p>
               </div>
             </div>
             <div class="chart-canvas-wrapper">
-              <canvas id="chartStatus"></canvas>
-            </div>
-          </div>
-
-          <div class="chart-card">
-            <div class="chart-card-header">
-              <div>
-                <h3 class="chart-card-title">Cumprimento de SLA (Prazo)</h3>
-                <p class="chart-card-subtitle">Relação entre prazos pactuados e datas de resposta</p>
-              </div>
-            </div>
-            <div class="chart-canvas-wrapper">
-              <canvas id="chartSla"></canvas>
+              <canvas id="chartTimeline"></canvas>
             </div>
           </div>
 
@@ -193,12 +163,12 @@
           <div class="chart-card">
             <div class="chart-card-header">
               <div>
-                <h3 class="chart-card-title">Carga de Trabalho por Responsável</h3>
-                <p class="chart-card-subtitle">Demandas concluídas vs em análise por membro da equipe</p>
+                <h3 class="chart-card-title">Distribuição por Status</h3>
+                <p class="chart-card-subtitle">Volume geral do andamento das demandas</p>
               </div>
             </div>
             <div class="chart-canvas-wrapper">
-              <canvas id="chartResponsavel"></canvas>
+              <canvas id="chartStatus"></canvas>
             </div>
           </div>
 
@@ -213,22 +183,144 @@
               <canvas id="chartCategoria"></canvas>
             </div>
           </div>
+        </div>
+      </section>
 
+      <!-- ABA 2: PRODUTIVIDADE (TODOS OS USUÁRIOS) -->
+      <section id="tab-produtividade" class="tab-pane">
+        <!-- Indicadores Chave de Produtividade -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-title">Maior Volume por Responsável</span>
+            <span class="metric-value" id="metricProdTopResp" style="font-size: 18px;">N/A</span>
+            <span class="metric-footnote">Colaborador com maior atribuição</span>
+          </div>
+          <div class="metric-card info">
+            <span class="metric-title">Tempo Médio de Resposta</span>
+            <span class="metric-value" id="metricProdMediaDias">0 d</span>
+            <span class="metric-footnote">Dias médios entre recebimento e resposta</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Demandas Concluídas</span>
+            <span class="metric-value" id="metricProdConcluidas">0</span>
+            <span class="metric-footnote">Finalizadas pelos analistas</span>
+          </div>
+          <div class="metric-card alert">
+            <span class="metric-title">Demandas em Análise</span>
+            <span class="metric-value" id="metricProdEmAnalise">0</span>
+            <span class="metric-footnote">Em andamento na equipe</span>
+          </div>
+        </div>
+
+        <!-- Grafico Carga de Trabalho por Responsavel -->
+        <div class="charts-grid" style="grid-template-columns: 1fr; margin-bottom: 24px;">
           <div class="chart-card">
             <div class="chart-card-header">
               <div>
-                <h3 class="chart-card-title">Evolução Mensal de Entrada</h3>
-                <p class="chart-card-subtitle">Histórico de novas solicitações protocoladas</p>
+                <h3 class="chart-card-title">Carga de Trabalho por Responsável</h3>
+                <p class="chart-card-subtitle">Demandas concluídas, em análise e redirecionadas por membro da equipe</p>
               </div>
             </div>
-            <div class="chart-canvas-wrapper">
-              <canvas id="chartTimeline"></canvas>
+            <div class="chart-canvas-wrapper" style="height: 340px;">
+              <canvas id="chartResponsavel"></canvas>
             </div>
+          </div>
+        </div>
+
+        <!-- Tabela Resumo de Produtividade por Responsável -->
+        <div class="form-card">
+          <div style="margin-bottom: 16px;">
+            <h3 style="font-size: 15px; font-weight: 800; color: var(--cemig-green-dark);">Detalhamento de Carga e Produtividade por Analista</h3>
+            <p style="font-size: 12px; color: var(--text-muted);">Quadro comparativo de volume total, demandas concluídas, pendentes e percentual de atendimento.</p>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Responsável</th>
+                  <th style="text-align: center;">Total Demandas</th>
+                  <th style="text-align: center;">Concluídas</th>
+                  <th style="text-align: center;">Em Análise</th>
+                  <th style="text-align: center;">Redirecionadas</th>
+                  <th style="text-align: center;">Taxa de Conclusão</th>
+                  <th style="text-align: right;">Carga Relativa</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaProdutividadeBody">
+                <!-- Preenchido via ChartsManager -->
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      <!-- ABA 2: FORMULARIO DE CADASTRO (TODOS OS USUÁRIOS) -->
+      <!-- ABA 3: PRAZOS E CUMPRIMENTO DE SLA (TODOS OS USUÁRIOS) -->
+      <section id="tab-prazos" class="tab-pane">
+        <!-- Indicadores Chave de Prazos e SLA -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-title">Cumprimento do Prazo</span>
+            <span class="metric-value" id="metricPrazosTaxaSla">100.0%</span>
+            <span class="metric-footnote">Taxa de conformidade de SLA</span>
+          </div>
+          <div class="metric-card danger">
+            <span class="metric-title">Demandas Vencidas</span>
+            <span class="metric-value" id="metricPrazosAtrasadas">0</span>
+            <span class="metric-footnote">Em aberto com prazo regulatório expirado</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">Concluídas no Prazo</span>
+            <span class="metric-value" id="metricPrazosNoPrazo">0</span>
+            <span class="metric-footnote">Respostas formalizadas dentro da data</span>
+          </div>
+          <div class="metric-card alert">
+            <span class="metric-title">Concluídas Fora do Prazo</span>
+            <span class="metric-value" id="metricPrazosForaPrazo">0</span>
+            <span class="metric-footnote">Respostas formalizadas após vencimento</span>
+          </div>
+        </div>
+
+        <!-- Grafico Cumprimento de SLA (Prazo) -->
+        <div class="charts-grid" style="grid-template-columns: 1fr; margin-bottom: 24px;">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <h3 class="chart-card-title">Cumprimento de SLA (Prazo)</h3>
+                <p class="chart-card-subtitle">Relação entre prazos pactuados e datas de resposta formal</p>
+              </div>
+            </div>
+            <div class="chart-canvas-wrapper" style="height: 320px;">
+              <canvas id="chartSla"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quadro de Detalhamento de Conformidade Regulatória -->
+        <div class="form-card">
+          <div style="margin-bottom: 16px;">
+            <h3 style="font-size: 15px; font-weight: 800; color: var(--cemig-green-dark);">Resumo de Conformidade Regulatória</h3>
+            <p style="font-size: 12px; color: var(--text-muted);">Consolidação da situação de cumprimento de prazos pactuados junto a órgãos públicos e promotorias.</p>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Situação SLA</th>
+                  <th style="text-align: center;">Quantidade</th>
+                  <th style="text-align: center;">Percentual</th>
+                  <th style="text-align: center;">Impacto</th>
+                  <th style="text-align: right;">Ação Recomendada</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaPrazosBody">
+                <!-- Preenchido via ChartsManager -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 4: FORMULARIO DE CADASTRO (TODOS OS USUÁRIOS) -->
       <section id="tab-cadastro" class="tab-pane">
         <div class="form-card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">

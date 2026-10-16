@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const targetPane = document.getElementById(targetId);
       if (targetPane) {
         targetPane.classList.add('active');
-        if (targetId === 'tab-dashboard') {
+        if (targetId === 'tab-dashboard' || targetId === 'tab-produtividade' || targetId === 'tab-prazos') {
           window.chartsManager.updateAll(todasDemandas);
         } else if (targetId === 'tab-usuarios') {
           renderizarTabelaUsuarios();
@@ -369,6 +369,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (p.id === tabId) p.classList.add('active');
       else p.classList.remove('active');
     });
+    if (tabId === 'tab-dashboard' || tabId === 'tab-produtividade' || tabId === 'tab-prazos') {
+      if (window.chartsManager && todasDemandas) {
+        window.chartsManager.updateAll(todasDemandas);
+      }
+    }
   }
 
   // ========================================================================

@@ -74,16 +74,39 @@ Todas as colunas extraídas do arquivo Excel fornecido estão integradas à tabe
 
 ```text
 /
-├── index.html              # Interface do usuário com tela de login, abas e modais
+├── index.html              # Interface com abas (Dashboard, Produtividade, Prazos, Cadastro, Tabela, etc.)
 ├── styles.css              # Identidade visual CEMIG (verde #008542, laranja, cards e tabelas)
+├── config.js               # Chaves de conexao Supabase (ignorado no .gitignore)
+├── config.example.js       # Modelo de exemplo para configuracao
 ├── storage.js              # Camada de persistência 100% Supabase (demandas_vanessa e usuarios_vanessa)
 ├── auth.js                 # Módulo de autenticação e RBAC integrado à tabela usuarios_vanessa
 ├── app.js                  # Controlador central, regras de negócio, tabela, filtros e SLA
-├── charts.js               # Gerenciador dos gráficos em tempo real e cálculo de KPIs (Chart.js)
+├── charts.js               # Gráficos em barras com valores externos, KPIs e tabelas analíticas (Chart.js)
 ├── initialData.js          # Base de demonstração pré-carregada para importação sob demanda
 ├── demandas_completo.json  # Exportação completa de todos os 744 registros da planilha
 └── README.md               # Manual técnico e documentação
 ```
+
+---
+
+## 6. Módulos de Visualização e Indicadores
+
+1. **Painel de Indicadores & Insights (Geral)**:
+   - Resumo executivo consolidado com total de demandas, status atual, tipos mais frequentes e evolução histórica.
+   - Gráfico de Distribuição por Status em barras com valores externos.
+   - Gráfico de Volume por Tipo de Demanda em barras horizontais com valores externos.
+   - Gráfico de Top Categorias em barras com valores externos.
+   - Linha de Evolução Mensal de Entrada.
+
+2. **Produtividade da Equipe (`tab-produtividade`)**:
+   - Cards dedicados: **Maior Volume por Responsável**, **Tempo Médio de Resposta**, **Demandas Concluídas** e **Demandas em Andamento**.
+   - Gráfico: **Carga de Trabalho por Responsável** em barras agrupadas coloridas com os valores exatos de cada status exibidos acima das barras.
+   - Tabela analítica com o detalhamento completo de carga de trabalho e percentual de atendimento por colaborador.
+
+3. **Gestão de Prazos e Cumprimento de SLA (`tab-prazos`)**:
+   - Cards dedicados: **Cumprimento do Prazo (SLA)**, **Demandas Vencidas**, **Concluídas no Prazo** e **Concluídas Fora do Prazo**.
+   - Gráfico: **Cumprimento de SLA (Prazo)** convertido para barras com valores exibidos na parte externa superior das barras.
+   - Tabela de consolidação de conformidade regulatória perante promotorias e órgãos solicitantes.
 
 ---
 

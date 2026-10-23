@@ -73,7 +73,7 @@ class ChartsManager {
         datasets: [{
           label: 'Total por Status',
           data: [0, 0, 0],
-          backgroundColor: ['#16a34a', '#ca8a04', '#0284c7'],
+          backgroundColor: ['#008542', '#FF6A00', '#A87C52'],
           borderRadius: 6,
           borderWidth: 0
         }]
@@ -121,7 +121,7 @@ class ChartsManager {
         datasets: [{
           label: 'Total de Demandas',
           data: [],
-          backgroundColor: '#2563eb',
+          backgroundColor: '#008542',
           borderRadius: 4
         }]
       },
@@ -261,7 +261,7 @@ class ChartsManager {
         datasets: [{
           label: 'Demandas por Categoria',
           data: [],
-          backgroundColor: '#7c3aed',
+          backgroundColor: '#008542',
           borderRadius: 4
         }]
       },

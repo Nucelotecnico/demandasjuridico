@@ -47,9 +47,9 @@ Contas padrão cadastradas na tabela `usuarios_vanessa`:
 
 ---
 
-## 4. Mapeamento das 17 Colunas da Planilha Original
+## 4. Mapeamento das 16 Colunas da Planilha Original
 
-Todas as colunas extraídas do arquivo Excel fornecido estão integradas à tabela `demandas_vanessa`:
+Todas as colunas extraídas do arquivo Excel fornecido estão integradas à tabela `demandas_vanessa` (o campo anterior `data_validacao` foi descontinuado):
 1. `data_recebida`: Data Recebida (obrigatório)
 2. `prazo`: Prazo Limite (obrigatório)
 3. `tipo`: Tipo de Demanda (Ofício, Procon, Parlamentar, etc.)
@@ -64,9 +64,8 @@ Todas as colunas extraídas do arquivo Excel fornecido estão integradas à tabe
 12. `requerimento`: Requerimento e histórico detalhado
 13. `responsavel`: Responsável Técnico (Vanessa, Rodolfo, Agata, Ruan, etc.)
 14. `status`: Status Atual (Em Análise, Concluído, Redirecionado)
-15. `data_validacao`: Data de Validação interna
-16. `numero_gdoc`: Número GDOC
-17. `data_resposta_mp`: Data Resposta formal enviada
+15. `numero_gdoc`: Número GDOC
+16. `data_resposta_mp`: Data Resposta formal enviada
 
 ---
 

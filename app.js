@@ -383,7 +383,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
 
     const formData = new FormData(formDemanda);
-    const dataVal = formData.get('data_validacao');
     const dataResp = formData.get('data_resposta_mp');
 
     const registro = {
@@ -401,7 +400,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       requerimento: formData.get('requerimento') || '',
       responsavel: formData.get('responsavel') || '',
       status: formData.get('status') || 'Em Analise',
-      data_validacao: dataVal && dataVal.trim() ? dataVal.trim() : null,
       numero_gdoc: formData.get('numero_gdoc') || '',
       data_resposta_mp: dataResp && dataResp.trim() ? dataResp.trim() : null
     };
@@ -462,7 +460,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('field_requerimento').value = dem.requerimento || '';
     document.getElementById('field_responsavel').value = dem.responsavel || '';
     document.getElementById('field_status').value = dem.status || 'Em Analise';
-    document.getElementById('field_data_validacao').value = dem.data_validacao || '';
     document.getElementById('field_numero_gdoc').value = dem.numero_gdoc || '';
     document.getElementById('field_data_resposta_mp').value = dem.data_resposta_mp || '';
 
@@ -520,7 +517,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div><b>Responsável:</b> ${dem.responsavel || '-'}</div>
         <div><b>Status:</b> ${renderBadgeStatus(dem.status)}</div>
         <div><b>Situação SLA:</b> ${slaInfo.badgeHtml}</div>
-        <div><b>Data Validação:</b> ${formatarData(dem.data_validacao)}</div>
         <div><b>Número GDOC:</b> ${dem.numero_gdoc || '-'}</div>
         <div><b>Data Resposta MP:</b> ${formatarData(dem.data_resposta_mp)}</div>
         <div style="grid-column: span 2; margin-top: 8px;">
@@ -943,7 +939,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'ID', 'Data Recebida', 'Prazo', 'Tipo', 'Número do Ofício', 'Promotoria',
       'Município Referido', 'Categoria', 'Subcategoria', 'Resp Outra Gerência',
       'Reincidente', 'Dado em Comum EO', 'Requerimento', 'Responsável',
-      'Status', 'Data Validação', 'Número GDOC', 'Data Resposta MP'
+      'Status', 'Número GDOC', 'Data Resposta MP'
     ];
 
     const rows = todasDemandas.map(d => [
@@ -952,7 +948,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       `"${(d.categoria || '').replace(/"/g, '""')}"`, `"${(d.subcategoria || '').replace(/"/g, '""')}"`,
       d.responsabilidade_outra_gerencia, d.reincidente, `"${(d.dado_em_comum_eo || '').replace(/"/g, '""')}"`,
       `"${(d.requerimento || '').replace(/"/g, '""')}"`, `"${(d.responsavel || '').replace(/"/g, '""')}"`,
-      d.status, d.data_validacao, d.numero_gdoc, d.data_resposta_mp
+      d.status, d.numero_gdoc, d.data_resposta_mp
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8,﻿" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -991,17 +987,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btnRestaurarExemplo').addEventListener('click', async () => {
     if (!confirm('Deseja carregar os registros de demonstração da planilha original diretamente no Supabase?')) return;
-    if (typeof INITIAL_DEMANDAS !== 'undefined' && Array.isArray(INITIAL_DEMANDAS)) {
+    try {
+      let lista = null;
       try {
-        mostrarToast('Enviando dados da planilha para o Supabase...', 'primary');
-        await window.storageService.bulkInsert(INITIAL_DEMANDAS);
+        const resp = await fetch('demandas_completo.json');
+        if (resp.ok) {
+          lista = await resp.json();
+        }
+      } catch (eFetch) {
+        console.warn('Não foi possível obter demandas_completo.json via fetch:', eFetch);
+      }
+      if (!lista && typeof INITIAL_DEMANDAS !== 'undefined' && Array.isArray(INITIAL_DEMANDAS)) {
+        lista = INITIAL_DEMANDAS;
+      }
+      if (lista && Array.isArray(lista) && lista.length > 0) {
+        mostrarToast(`Enviando ${lista.length} registros da planilha para o Supabase...`, 'primary');
+        await window.storageService.bulkInsert(lista);
         todasDemandas = await window.storageService.getAll();
         aplicarFiltrosEOrdenar();
         window.chartsManager.updateAll(todasDemandas);
-        mostrarToast('Base de demonstração gravada com sucesso no Supabase.', 'success');
-      } catch (err) {
-        mostrarToast('Erro ao carregar no Supabase: ' + err.message, 'danger');
+        mostrarToast(`Base de demonstração com ${lista.length} registros gravada com sucesso no Supabase.`, 'success');
+      } else {
+        mostrarToast('Nenhum conjunto de dados encontrado para restaurar.', 'warning');
       }
+    } catch (err) {
+      mostrarToast('Erro ao carregar no Supabase: ' + err.message, 'danger');
     }
   });
 

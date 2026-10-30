@@ -214,12 +214,17 @@ class StorageService {
   }
 
   // Sanitizacao de registros de demandas para o Supabase (PostgreSQL)
-  // Campos de data vazios DEVEM ser enviados como null para evitar erro de sintaxe DATE
+  // Campos de data vazios DEVEM ser enviados como null para evitar erro de sintaxe DATE.
+  // data_validacao e descontinuado e removido do payload para evitar conflito com a tabela.
   sanitizeDemandaRecord(record) {
     if (!record || typeof record !== 'object') return record;
     const clean = { ...record };
 
-    const dateFields = ['data_recebida', 'prazo', 'data_validacao', 'data_resposta_mp'];
+    if ('data_validacao' in clean) {
+      delete clean.data_validacao;
+    }
+
+    const dateFields = ['data_recebida', 'prazo', 'data_resposta_mp'];
     dateFields.forEach(field => {
       if (clean[field] !== undefined) {
         const val = clean[field];

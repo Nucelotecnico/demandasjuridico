@@ -107,6 +107,10 @@ Todas as colunas extraídas do arquivo Excel fornecido estão integradas à tabe
    - Gráfico: **Cumprimento de SLA (Prazo)** convertido para barras com valores exibidos na parte externa superior das barras.
    - Tabela de consolidação de conformidade regulatória perante promotorias e órgãos solicitantes.
 
+4. **Listagem Geral de Demandas (`tab-tabela`)**:
+   - Tabela completa e responsiva com paginação, ordenação clicável por colunas e múltiplos filtros combinados (busca global, status, tipo, responsável e SLA).
+   - Botão **Exportar Lista Excel**: exporta diretamente para arquivo Excel (`.csv` com BOM UTF-8 e delimitador `;`) respeitando os filtros ativos aplicados em tela ou a base completa.
+
 ---
 
 ## 6. Tabelas do Supabase em Produção

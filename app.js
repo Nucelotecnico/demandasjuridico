@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const filtroResponsavel = document.getElementById('filtroResponsavel');
   const filtroSLA = document.getElementById('filtroSLA');
   const btnLimparFiltros = document.getElementById('btnLimparFiltros');
+  const btnExportarListaExcel = document.getElementById('btnExportarListaExcel');
 
   // Paginacao
   const pagInicio = document.getElementById('pagInicio');
@@ -618,6 +619,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     aplicarFiltrosEOrdenar();
   });
 
+  if (btnExportarListaExcel) {
+    btnExportarListaExcel.addEventListener('click', () => {
+      if (todasDemandas.length === 0) {
+        mostrarToast('Nenhuma demanda cadastrada para exportar.', 'warning');
+        return;
+      }
+      const lista = (demandasFiltradas && demandasFiltradas.length > 0)
+        ? demandasFiltradas
+        : todasDemandas;
+      exportarListaParaExcel(lista, 'listagem');
+    });
+  }
+
   document.querySelectorAll('.data-table th.sortable').forEach(th => {
     th.addEventListener('click', () => {
       const campo = th.getAttribute('data-sort');
@@ -929,34 +943,103 @@ document.addEventListener('DOMContentLoaded', async () => {
     dlAnchor.click();
   });
 
-  document.getElementById('btnExportarCSV').addEventListener('click', () => {
-    if (todasDemandas.length === 0) {
-      mostrarToast('Nenhum dado para exportar.', 'warning');
+  // Função reutilizável de exportação para Excel (CSV compatível com Microsoft Excel pt-BR)
+  function exportarListaParaExcel(lista, sufixoArquivo = 'listagem') {
+    if (!lista || lista.length === 0) {
+      mostrarToast('Nenhuma demanda encontrada para exportar.', 'warning');
       return;
     }
 
     const headers = [
-      'ID', 'Data Recebida', 'Prazo', 'Tipo', 'Número do Ofício', 'Promotoria',
-      'Município Referido', 'Categoria', 'Subcategoria', 'Resp Outra Gerência',
-      'Reincidente', 'Dado em Comum EO', 'Requerimento', 'Responsável',
-      'Status', 'Número GDOC', 'Data Resposta MP'
+      'ID',
+      'Data Recebida',
+      'Prazo Limite',
+      'Tipo de Demanda',
+      'Número do Ofício',
+      'Promotoria',
+      'Município Referido',
+      'Categoria',
+      'Subcategoria',
+      'Resp Outra Gerência',
+      'Reincidente',
+      'Dado em Comum EO',
+      'Requerimento / Observações',
+      'Responsável',
+      'Status Atual',
+      'Situação SLA',
+      'Número GDOC',
+      'Data Resposta MP'
     ];
 
-    const rows = todasDemandas.map(d => [
-      d.id, d.data_recebida, d.prazo, d.tipo, `"${(d.numero_oficio || '').replace(/"/g, '""')}"`,
-      `"${(d.promotoria || '').replace(/"/g, '""')}"`, `"${(d.municipio_referido || '').replace(/"/g, '""')}"`,
-      `"${(d.categoria || '').replace(/"/g, '""')}"`, `"${(d.subcategoria || '').replace(/"/g, '""')}"`,
-      d.responsabilidade_outra_gerencia, d.reincidente, `"${(d.dado_em_comum_eo || '').replace(/"/g, '""')}"`,
-      `"${(d.requerimento || '').replace(/"/g, '""')}"`, `"${(d.responsavel || '').replace(/"/g, '""')}"`,
-      d.status, d.numero_gdoc, d.data_resposta_mp
-    ]);
+    const sanitizar = (val) => {
+      if (val === null || val === undefined || val === '-' || val === '_') return '""';
+      const str = String(val).replace(/"/g, '""').replace(/\r?\n/g, ' ');
+      return `"${str}"`;
+    };
 
-    const csvContent = "data:text/csv;charset=utf-8,﻿" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const formatarDataExcel = (dataIso) => {
+      if (!dataIso || dataIso === '-' || dataIso === '_') return '""';
+      try {
+        const parts = String(dataIso).substring(0, 10).split('-');
+        if (parts.length === 3) {
+          return `"${parts[2]}/${parts[1]}/${parts[0]}"`;
+        }
+      } catch (e) {}
+      return sanitizar(dataIso);
+    };
+
+    const rows = lista.map(d => {
+      const slaInfo = calcularSlaInfo(d);
+      const slaTexto = (slaInfo && slaInfo.badgeHtml)
+        ? slaInfo.badgeHtml.replace(/<[^>]*>/g, '').trim()
+        : '-';
+
+      return [
+        sanitizar(d.id),
+        formatarDataExcel(d.data_recebida),
+        formatarDataExcel(d.prazo),
+        sanitizar(d.tipo),
+        sanitizar(d.numero_oficio),
+        sanitizar(d.promotoria),
+        sanitizar(d.municipio_referido),
+        sanitizar(d.categoria),
+        sanitizar(d.subcategoria),
+        sanitizar(d.responsabilidade_outra_gerencia || 'Não'),
+        sanitizar(d.reincidente || 'Não'),
+        sanitizar(d.dado_em_comum_eo),
+        sanitizar(d.requerimento),
+        sanitizar(d.responsavel),
+        sanitizar(d.status),
+        sanitizar(slaTexto),
+        sanitizar(d.numero_gdoc),
+        formatarDataExcel(d.data_resposta_mp)
+      ].join(';');
+    });
+
+    const csvContent = "﻿" + [headers.join(';'), ...rows].join("\r\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const dlAnchor = document.createElement('a');
-    dlAnchor.setAttribute("href", encodeURI(csvContent));
-    dlAnchor.setAttribute("download", `cemig_demandas_export_${new Date().toISOString().substring(0, 10)}.csv`);
+    dlAnchor.href = url;
+    dlAnchor.download = `cemig_demandas_${sufixoArquivo}_${new Date().toISOString().substring(0, 10)}.csv`;
+    document.body.appendChild(dlAnchor);
     dlAnchor.click();
-  });
+    document.body.removeChild(dlAnchor);
+    URL.revokeObjectURL(url);
+
+    mostrarToast(`Lista com ${lista.length} demanda(s) exportada com sucesso para o Excel.`, 'success');
+  }
+
+  const btnExportarCSV = document.getElementById('btnExportarCSV');
+  if (btnExportarCSV) {
+    btnExportarCSV.addEventListener('click', () => {
+      if (todasDemandas.length === 0) {
+        mostrarToast('Nenhum dado para exportar.', 'warning');
+        return;
+      }
+      exportarListaParaExcel(todasDemandas, 'tabela_completa');
+    });
+  }
 
   const fileInputImportJSON = document.getElementById('fileInputImportJSON');
   fileInputImportJSON.addEventListener('change', (e) => {
